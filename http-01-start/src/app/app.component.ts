@@ -1,28 +1,41 @@
 import { PostsService } from "./posts.service";
 import { Post } from "./post.model";
-import { Component, OnInit } from "@angular/core";
+import { Component, OnDestroy, OnInit } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { map } from "rxjs/operators";
+import { Subscription } from "rxjs";
 
 @Component({
   selector: "app-root",
   templateUrl: "./app.component.html",
   styleUrls: ["./app.component.css"],
 })
-export class AppComponent implements OnInit {
+export class AppComponent implements OnInit, OnDestroy {
   loadedPosts: Post[] = [];
   isFetching = false;
+  error = null;
+  private errorSub: Subscription;
 
   // INJECT HttpClient INTO CONSTRUCTOR
   constructor(private http: HttpClient, private postsService: PostsService) {}
 
   // FETCH POSTS AUTOMATICALLY ON LOAD USING NGONINIT
   ngOnInit() {
-    this.isFetching = true;
-    this.postsService.fetchPosts().subscribe((posts) => {
-      this.isFetching = false;
-      this.loadedPosts = posts;
+    this.errorSub = this.postsService.error.subscribe((errorMessage) => {
+      this.error = errorMessage;
     });
+
+    this.isFetching = true;
+    this.postsService.fetchPosts().subscribe(
+      (posts) => {
+        this.isFetching = false;
+        this.loadedPosts = posts;
+      },
+      (error) => {
+        this.isFetching = false;
+        this.error = error.message;
+      }
+    );
   }
 
   onCreatePost(postData: Post) {
@@ -39,12 +52,18 @@ export class AppComponent implements OnInit {
   }
 
   onFetchPosts() {
-    // Send Http request
+    // Send Http request, and error handling
     this.isFetching = true;
-    this.postsService.fetchPosts().subscribe((posts) => {
-      this.isFetching = false;
-      this.loadedPosts = posts;
-    });
+    this.postsService.fetchPosts().subscribe(
+      (posts) => {
+        this.isFetching = false;
+        this.loadedPosts = posts;
+      },
+      (error) => {
+        this.isFetching = false;
+        this.error = error.message;
+      }
+    );
   }
 
   onClearPosts() {
@@ -76,4 +95,13 @@ export class AppComponent implements OnInit {
   //   //     this.loadedPosts = posts;
   //   //   });
   // }
+
+  onHandleError() {
+    this.error = null;
+  }
+
+  // destroys, unsubscribes, prevents memory leaks
+  ngOnDestroy() {
+    this.errorSub.unsubscribe();
+  }
 }
