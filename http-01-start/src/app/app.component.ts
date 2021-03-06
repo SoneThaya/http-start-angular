@@ -10,6 +10,7 @@ import { map } from "rxjs/operators";
 })
 export class AppComponent implements OnInit {
   loadedPosts: Post[] = [];
+  isFetching = false;
 
   // INJECT HttpClient INTO CONSTRUCTOR
   constructor(private http: HttpClient) {}
@@ -41,6 +42,7 @@ export class AppComponent implements OnInit {
   }
 
   private fetchPosts() {
+    this.isFetching = true;
     this.http
       .get<{ [key: string]: Post }>(
         "https://ng-complete-angular-b34c8-default-rtdb.firebaseio.com/posts.json"
@@ -57,10 +59,8 @@ export class AppComponent implements OnInit {
         })
       )
       .subscribe((posts) => {
-        console.log(posts)
+        this.isFetching = false;
         this.loadedPosts = posts;
-        console.log(this.loadedPosts)
       });
-
   }
 }
